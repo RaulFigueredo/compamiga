@@ -17,4 +17,4 @@ COPY . .
 EXPOSE 19006
 
 # Command to run the application
-CMD ["npm", "start", "--web", "--port", "19006"]
+CMD ["npm", "start", "--", "--web", "--port", "19006"]

@@ -7,6 +7,9 @@ RUN apt-get update && apt-get install -y \
     libzip-dev \
     libcurl4-openssl-dev \
     libpq-dev \
+    net-tools \
+    iputils-ping \
+    curl \
     && docker-php-ext-install zip pdo_mysql curl pdo
 
 # Instalar Composer
