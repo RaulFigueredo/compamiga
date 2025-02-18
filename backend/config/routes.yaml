@@ -1,0 +1,4 @@
+app_conversation:
+    path: /conversation
+    controller: App\Controller\ConversationController::generateResponse
+    methods: [POST, OPTIONS]

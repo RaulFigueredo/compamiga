@@ -1,0 +1,72 @@
+version: '3.8'
+
+services:
+  php:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: compamiga-php
+    volumes:
+      - ./:/var/www/backend
+    networks:
+      - compamiga-network
+    environment:
+      - APP_ENV=dev
+      - APP_SECRET=your_app_secret_here
+      - DATABASE_URL=mysql://compamiga:compamiga@database:3309/compamiga
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - database
+
+  nginx:
+    image: nginx:latest
+    container_name: compamiga-nginx
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www/backend
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    networks:
+      - compamiga-network
+    depends_on:
+      - php
+
+  database:
+    image: mysql:8.0
+    container_name: compamiga-database
+    ports:
+      - "3309:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: compamiga
+      MYSQL_USER: compamiga
+      MYSQL_PASSWORD: compamiga
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - compamiga-network
+
+  frontend:
+    build: 
+      context: ../frontend
+      dockerfile: Dockerfile
+    container_name: compamiga-frontend
+    ports:
+      - "19006:19006"
+    volumes:
+      - ../frontend:/app
+    networks:
+      - compamiga-network
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
+    depends_on:
+      - php
+      - nginx
+
+volumes:
+  mysql-data:
+
+networks:
+  compamiga-network:
+    driver: bridge
