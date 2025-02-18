@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import React, { useState } from 'react';
 import { View, StyleSheet } from 'react-native';
 import { Text, Surface, Switch, Button, TextInput } from 'react-native-paper';
@@ -54,6 +55,15 @@ export const SettingsScreen = () => {
           Guardar configuración
         </Button>
       </Surface>
+=======
+import React from 'react';
+import { View, Text, StyleSheet } from 'react-native';
+
+export const SettingsScreen = () => {
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Configuración</Text>
+>>>>>>> restored-version
     </View>
   );
 };
@@ -61,6 +71,7 @@ export const SettingsScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+<<<<<<< HEAD
     padding: 16,
     backgroundColor: '#f5f5f5',
   },
@@ -92,5 +103,15 @@ const styles = StyleSheet.create({
   },
   saveButton: {
     marginTop: 20,
+=======
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#333',
+>>>>>>> restored-version
   },
 });

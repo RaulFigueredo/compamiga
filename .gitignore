@@ -1,4 +1,5 @@
 <<<<<<< HEAD
+<<<<<<< HEAD
 # Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
 
 # dependencies
@@ -36,6 +37,8 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 =======
+=======
+>>>>>>> restored-version
 # Dependency directories
 node_modules/
 vendor/
@@ -89,4 +92,7 @@ backend/composer.lock
 # Docker
 *.dockerfile.swp
 docker-compose.override.yml
+<<<<<<< HEAD
 >>>>>>> a3796eb (Add comprehensive .gitignore for CompAmiga project)
+=======
+>>>>>>> restored-version

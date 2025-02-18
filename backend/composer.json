@@ -7,11 +7,20 @@
         "php": ">=8.2",
         "ext-ctype": "*",
         "ext-iconv": "*",
+<<<<<<< HEAD
+=======
+        "monolog/monolog": "^3.8",
+        "nelmio/cors-bundle": "^2.5",
+>>>>>>> restored-version
         "openai-php/client": "*",
         "symfony/console": "6.4.*",
         "symfony/dotenv": "6.4.*",
         "symfony/flex": "^2",
         "symfony/framework-bundle": "6.4.*",
+<<<<<<< HEAD
+=======
+        "symfony/monolog-bundle": "^3.10",
+>>>>>>> restored-version
         "symfony/runtime": "6.4.*",
         "symfony/yaml": "6.4.*"
     },
