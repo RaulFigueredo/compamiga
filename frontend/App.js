@@ -9,12 +9,18 @@ import {
   Animated,
   Modal,
   Switch,
-  Alert 
+  Alert,
+  Platform
 } from 'react-native';
 import axios from 'axios';
 import { Ionicons } from '@expo/vector-icons';
 
 const { width, height } = Dimensions.get('window');
+
+const BACKEND_URL = Platform.select({
+  web: 'http://localhost:8080/process',
+  default: 'http://localhost:8080/process'
+});
 
 export default function App() {
   const [fadeAnim] = useState(new Animated.Value(0));
@@ -181,7 +187,7 @@ export default function App() {
     }
 
     try {
-      const response = await axios.post('http://tu-backend-api.com/process', { 
+      const response = await axios.post(BACKEND_URL, { 
         text: transcript 
       });
       console.log('Respuesta del backend:', response.data);
