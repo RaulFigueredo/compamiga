@@ -1,29 +1,21 @@
-# Usa una imagen base de Node.js
-FROM node:16
+FROM node:20-alpine
 
-# Establece el directorio de trabajo
 WORKDIR /app
 
-# Instala herramientas de depuración
-RUN apt-get update && apt-get install -y \
-    net-tools \
-    iputils-ping \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copia los archivos de package.json y package-lock.json
+# Instalar dependencias primero para aprovechar el caché de Docker
 COPY package*.json ./
+RUN npm install
 
-# Instala Expo CLI globalmente
-RUN npm install -g expo-cli
-
-# Instala las dependencias con npm ci para instalaciones más predecibles
-RUN npm ci
-
-# Copia el resto de los archivos del proyecto
+# Copiar el resto de la aplicación
 COPY . .
 
-# Expone el puerto para el desarrollo web
-EXPOSE 19006
+# Variables de entorno
+ENV NODE_ENV=production
+ENV VITE_PORT=5173
+ENV HOST=0.0.0.0
 
-# Comando para iniciar la aplicación con más verbosidad
-CMD ["npm", "run", "web"]
+# Exponer el puerto de Vite
+EXPOSE 5173
+
+# Iniciar el servidor
+CMD ["npm", "run", "dev", "--", "--host"]

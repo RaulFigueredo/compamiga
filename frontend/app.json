@@ -22,7 +22,18 @@
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "webpack",
+      "output": "single",
+      "port": 19007,
+      "devServer": {
+        "port": 19007
+      },
+      "build": {
+        "babel": {
+          "include": ["@expo/vector-icons"]
+        }
+      }
     }
   }
 }

@@ -1,5 +1,9 @@
 version: '3.8'
 
+name: compamiga
+
+name: compamiga
+
 services:
   database:
     image: mysql:8.0
@@ -15,6 +19,11 @@ services:
       - mysql-data:/var/lib/mysql
     networks:
       - compamiga-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   php:
     build: 
@@ -36,12 +45,13 @@ services:
   nginx:
     image: nginx:latest
     container_name: compamiga-nginx
-    ports:
-      - "8000:80"
-    volumes:
-      - ./backend:/var/www/backend
     networks:
       - compamiga-network
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend:/var/www/backend
+      - ./backend/process.conf:/etc/nginx/conf.d/process.conf
     depends_on:
       - php
 
@@ -51,18 +61,18 @@ services:
       dockerfile: Dockerfile
     container_name: compamiga-frontend
     ports:
-      - "19006:19006"
+      - "5173:5173"
     volumes:
       - ./frontend:/app
       - /app/node_modules
-    environment:
-      - CHOKIDAR_USEPOLLING=true
-      - WDS_SOCKET_PORT=19006
-      - REACT_NATIVE_PACKAGER_HOSTNAME=localhost
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     networks:
       - compamiga-network
+    environment:
+      - NODE_ENV=development
+      - VITE_PORT=5173
+      - HOST=0.0.0.0
     depends_on:
+      - database
       - php
       - nginx
 
