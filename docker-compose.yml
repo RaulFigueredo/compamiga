@@ -1,0 +1,84 @@
+version: '3.8'
+
+name: compamiga
+
+name: compamiga
+
+services:
+  database:
+    image: mysql:8.0
+    container_name: compamiga-database
+    ports:
+      - "3309:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: compamiga
+      MYSQL_USER: compamiga
+      MYSQL_PASSWORD: compamiga
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - compamiga-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  php:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: compamiga-php
+    volumes:
+      - ./backend:/var/www/backend
+    networks:
+      - compamiga-network
+    environment:
+      - APP_ENV=dev
+      - APP_SECRET=your_app_secret_here
+      - DATABASE_URL=mysql://compamiga:compamiga@database:3309/compamiga
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    depends_on:
+      - database
+
+  nginx:
+    image: nginx:latest
+    container_name: compamiga-nginx
+    networks:
+      - compamiga-network
+    ports:
+      - "8002:8002"
+    volumes:
+      - ./backend:/var/www/backend
+      - ./backend/process.conf:/etc/nginx/conf.d/process.conf
+    depends_on:
+      - php
+
+  frontend:
+    build: 
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: compamiga-frontend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    networks:
+      - compamiga-network
+    environment:
+      - NODE_ENV=development
+      - VITE_PORT=5173
+      - HOST=0.0.0.0
+    depends_on:
+      - database
+      - php
+      - nginx
+
+volumes:
+  mysql-data:
+
+networks:
+  compamiga-network:
+    driver: bridge
