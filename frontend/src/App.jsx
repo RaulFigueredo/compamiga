@@ -129,6 +129,9 @@ export default function App() {
     return voices;
   };
 
+  // Referencia para el utterance actual
+  const currentUtteranceRef = useRef(null);
+
   const speak = useCallback(async (text) => {
     if (!text) return;
     console.log('Intentando hablar:', text);
@@ -140,8 +143,13 @@ export default function App() {
     }
 
     try {
-      // Detener cualquier síntesis anterior
-      window.speechSynthesis.cancel();
+      // Limpiar cualquier síntesis anterior
+      if (currentUtteranceRef.current) {
+        window.speechSynthesis.cancel();
+        currentUtteranceRef.current = null;
+        // Esperar un momento para asegurar que se ha limpiado
+        await new Promise(resolve => setTimeout(resolve, 50));
+      }
 
       // Si el usuario está hablando, esperar un momento
       if (isSpeaking) {
@@ -163,6 +171,8 @@ export default function App() {
         try {
           // Configurar el utterance
           const utterance = new SpeechSynthesisUtterance(text);
+          currentUtteranceRef.current = utterance;
+          
           utterance.lang = 'es-ES';
           utterance.rate = 0.9; // Velocidad ligeramente más lenta para mejor claridad
           utterance.pitch = 1.0;
@@ -201,6 +211,8 @@ export default function App() {
             console.log('Finalizó la síntesis de voz');
             console.log('Estado actual - isPaused:', isPaused, 'hasUserInteracted:', hasUserInteracted);
             
+            currentUtteranceRef.current = null;
+            
             // Pequeña pausa antes de reiniciar el reconocimiento
             setTimeout(() => {
               if (!isPaused && hasUserInteracted) {
@@ -216,27 +228,44 @@ export default function App() {
 
           utterance.onerror = (error) => {
             console.error('Error en la síntesis de voz:', error);
+            
+            currentUtteranceRef.current = null;
+            
             if (error.error === 'not-allowed') {
               console.log('Permiso denegado para síntesis de voz');
               setHasUserInteracted(false);
+            } else if (error.error === 'interrupted') {
+              console.log('Síntesis interrumpida, reintentando...');
+              // Reintentar la síntesis después de un breve delay
+              setTimeout(() => {
+                window.speechSynthesis.speak(utterance);
+              }, 100);
+              return; // No resolver la promesa aún
             }
+            
             resolve();
           };
 
           // Pequeña pausa para asegurar que todo esté listo
-          setTimeout(() => {
-            window.speechSynthesis.speak(utterance);
-          }, 100);
+          await new Promise(resolve => setTimeout(resolve, 100));
+          
+          // Asegurarse de que no hay síntesis activa
+          window.speechSynthesis.cancel();
+          
+          // Intentar hablar
+          window.speechSynthesis.speak(utterance);
         } catch (error) {
           console.error('Error al configurar la síntesis de voz:', error);
+          currentUtteranceRef.current = null;
           resolve();
         }
       });
     } catch (error) {
       console.error('Error en la síntesis de voz:', error);
+      currentUtteranceRef.current = null;
       return Promise.resolve();
     }
-  }, [languageCode, hasUserInteracted, isPaused]);
+  }, [languageCode, hasUserInteracted, isPaused, selectedVoice]);
 
   // Efecto para mostrar mensaje de bienvenida
   useEffect(() => {
