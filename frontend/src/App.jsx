@@ -159,7 +159,7 @@ export default function App() {
         }
       }
 
-      return new Promise(async (resolve) => {
+      const speakPromise = new Promise(async (resolve) => {
       try {
         // Configurar el utterance
         const utterance = new SpeechSynthesisUtterance(text);
@@ -221,6 +221,12 @@ export default function App() {
         resolve();
       }
     });
+
+    return speakPromise;
+    } catch (error) {
+      console.error('Error en la síntesis de voz:', error);
+      return Promise.resolve();
+    }
       try {
         console.log('Deteniendo temporalmente el reconocimiento para hablar...');
         recognitionRef.current.stop();
