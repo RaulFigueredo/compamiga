@@ -159,77 +159,72 @@ export default function App() {
         }
       }
 
-      const speakPromise = new Promise(async (resolve) => {
-      try {
-        // Configurar el utterance
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.lang = 'es-ES';
-        
-        // Usar la voz actual o buscar una nueva
-        let selectedVoiceObj = currentVoiceRef.current;
-        
-        if (!selectedVoiceObj) {
-          // Si no hay voz actual, intentar obtener una
-          const voices = await getVoices();
-          selectedVoiceObj = voices.find(v => v.name === selectedVoice);
+      return new Promise(async (resolve) => {
+        try {
+          // Configurar el utterance
+          const utterance = new SpeechSynthesisUtterance(text);
+          utterance.lang = 'es-ES';
+          
+          // Usar la voz actual o buscar una nueva
+          let selectedVoiceObj = currentVoiceRef.current;
           
           if (!selectedVoiceObj) {
-            console.warn('Voz no encontrada:', selectedVoice);
-            selectedVoiceObj = voices.find(v => v.lang.startsWith('es'));
+            // Si no hay voz actual, intentar obtener una
+            const voices = await getVoices();
+            selectedVoiceObj = voices.find(v => v.name === selectedVoice);
+            
+            if (!selectedVoiceObj) {
+              console.warn('Voz no encontrada:', selectedVoice);
+              selectedVoiceObj = voices.find(v => v.lang.startsWith('es'));
+              if (selectedVoiceObj) {
+                console.log('Usando voz alternativa:', selectedVoiceObj.name);
+              }
+            } else {
+              console.log('Configurando nueva voz:', selectedVoiceObj.name);
+            }
+            
             if (selectedVoiceObj) {
-              console.log('Usando voz alternativa:', selectedVoiceObj.name);
+              currentVoiceRef.current = selectedVoiceObj;
             }
           } else {
-            console.log('Configurando nueva voz:', selectedVoiceObj.name);
+            console.log('Usando voz actual:', selectedVoiceObj.name);
           }
           
           if (selectedVoiceObj) {
-            currentVoiceRef.current = selectedVoiceObj;
+            utterance.voice = selectedVoiceObj;
           }
-        } else {
-          console.log('Usando voz actual:', selectedVoiceObj.name);
-        }
-        
-        if (selectedVoiceObj) {
-          utterance.voice = selectedVoiceObj;
-        }
 
-        // Configurar eventos
-        utterance.onend = () => {
-          console.log('Finalizó la síntesis de voz');
-          // Reiniciar el reconocimiento si no está pausado
-          if (!isPaused && hasUserInteracted) {
-            console.log('Reiniciando reconocimiento después de hablar...');
-            startRecognition();
-          }
+          // Configurar eventos
+          utterance.onend = () => {
+            console.log('Finalizó la síntesis de voz');
+            // Reiniciar el reconocimiento si no está pausado
+            if (!isPaused && hasUserInteracted) {
+              console.log('Reiniciando reconocimiento después de hablar...');
+              startRecognition();
+            }
+            resolve();
+          };
+
+          utterance.onerror = (error) => {
+            console.error('Error en la síntesis de voz:', error);
+            // Reiniciar el reconocimiento si hay error
+            if (!isPaused && hasUserInteracted) {
+              startRecognition();
+            }
+            resolve();
+          };
+
+          // Hablar inmediatamente
+          window.speechSynthesis.speak(utterance);
+        } catch (error) {
+          console.error('Error al configurar la síntesis de voz:', error);
           resolve();
-        };
-
-        utterance.onerror = (error) => {
-          console.error('Error en la síntesis de voz:', error);
-          // Reiniciar el reconocimiento si hay error
-          if (!isPaused && hasUserInteracted) {
-            startRecognition();
-          }
-          resolve();
-        };
-
-        // Hablar inmediatamente
-        window.speechSynthesis.speak(utterance);
-      } catch (error) {
-        console.error('Error al configurar la síntesis de voz:', error);
-        resolve();
-      }
-    });
-
-    return speakPromise;
+        }
+      });
     } catch (error) {
       console.error('Error en la síntesis de voz:', error);
       return Promise.resolve();
     }
-      try {
-        console.log('Deteniendo temporalmente el reconocimiento para hablar...');
-        recognitionRef.current.stop();
       } catch (error) {
         console.error('Error al detener reconocimiento:', error);
       }
