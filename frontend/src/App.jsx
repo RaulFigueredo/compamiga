@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
+import axiosInstance from './axiosConfig';
+import ConfigurationPanel from './components/ConfigurationPanel';
 import './App.css';
 
 // Agregar los iconos de Material
@@ -8,42 +9,7 @@ materialIconsLink.href = 'https://fonts.googleapis.com/icon?family=Material+Icon
 materialIconsLink.rel = 'stylesheet';
 document.head.appendChild(materialIconsLink);
 
-// Configurar Axios para mostrar más detalles
-axios.interceptors.request.use(request => {
-  console.log('Starting Request', JSON.stringify(request, null, 2));
-  return request;
-});
-
-axios.interceptors.response.use(
-  response => {
-    console.log('Response:', JSON.stringify(response, null, 2));
-    return response;
-  },
-  error => {
-    console.error('Axios Interceptor Error:', error);
-    console.error('Error Details:', {
-      message: error.message,
-      code: error.code,
-      config: JSON.stringify(error.config, null, 2),
-      response: error.response ? JSON.stringify(error.response, null, 2) : 'No response'
-    });
-    return Promise.reject(error);
-  }
-);
-
-const API_BASE_URL = 'http://localhost:8002';
 const PROCESS_ENDPOINT = '/process';
-
-// Configurar timeout y otras opciones
-const axiosInstance = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 30000, // Aumentar a 30 segundos
-  timeoutErrorMessage: 'Tiempo de espera excedido al conectar con el backend',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json'
-  }
-});
 
 export default function App() {
   const [conversation, setConversation] = useState([]);
@@ -55,23 +21,105 @@ export default function App() {
   const [lastProcessedTime, setLastProcessedTime] = useState(0);
   const minTimeBetweenProcessing = 2000; // Mínimo tiempo entre procesamientos en ms
   const [sessionId, setSessionId] = useState(null);
+  const [selectedVoice, setSelectedVoice] = useState('es-ES-Standard-A');
 
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+  const [showConfig, setShowConfig] = useState(false);
+
+  // Referencia a la voz actual
+  const currentVoiceRef = useRef(null);
+
+  // Cargar la configuración inicial
+  useEffect(() => {
+    const loadInitialConfig = async () => {
+      try {
+        // Primero cargar la configuración guardada
+        const configResponse = await axiosInstance.get('/config');
+        const savedVoice = configResponse.data.assistant_voice;
+        console.log('Voz guardada en configuración:', savedVoice);
+        
+        // Esperar a que las voces estén disponibles
+        const voices = await getVoices();
+        const spanishVoices = voices.filter(voice => voice.lang.startsWith('es'));
+        console.log('Voces disponibles:', spanishVoices.map(v => v.name));
+        
+        // Verificar si la voz guardada está disponible
+        const savedVoiceExists = spanishVoices.some(voice => voice.name === savedVoice);
+        if (savedVoiceExists) {
+          console.log('Usando voz guardada:', savedVoice);
+          setSelectedVoice(savedVoice);
+          currentVoiceRef.current = voices.find(v => v.name === savedVoice);
+        } else {
+          // Si la voz guardada no está disponible, usar la primera voz en español
+          const defaultVoice = spanishVoices[0];
+          console.log('Voz guardada no disponible, usando:', defaultVoice?.name);
+          if (defaultVoice) {
+            setSelectedVoice(defaultVoice.name);
+            currentVoiceRef.current = defaultVoice;
+            // Actualizar la configuración con la nueva voz
+            await axiosInstance.post('/config', { assistant_voice: defaultVoice.name });
+          }
+        }
+        
+        // Actualizar voces disponibles en el backend
+        await axiosInstance.post('/config/voices', {
+          available_voices: spanishVoices.map(voice => ({
+            id: voice.name,
+            name: `${voice.name} (${voice.lang})`
+          }))
+        });
+      } catch (error) {
+        console.error('Error loading initial configuration:', error);
+      }
+    };
+    loadInitialConfig();
+  }, []);
+
+  // Actualizar la referencia de la voz cuando cambia la selección
+  useEffect(() => {
+    const updateCurrentVoice = async () => {
+      if (!selectedVoice) return;
+      
+      const voices = await getVoices();
+      const voice = voices.find(v => v.name === selectedVoice);
+      if (voice) {
+        console.log('Actualizando voz actual a:', voice.name);
+        currentVoiceRef.current = voice;
+      }
+    };
+    updateCurrentVoice();
+  }, [selectedVoice]);
 
   // Inicializar sessionId
   useEffect(() => {
-    const storedSessionId = localStorage.getItem('sessionId');
-    if (storedSessionId) {
-      setSessionId(storedSessionId);
-    } else {
-      const newSessionId = crypto.randomUUID();
-      localStorage.setItem('sessionId', newSessionId);
-      setSessionId(newSessionId);
+    let storedSessionId = localStorage.getItem('sessionId');
+    
+    if (!storedSessionId) {
+      // Crear nuevo sessionId si no existe
+      storedSessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', storedSessionId);
     }
+
+    console.log('Usando sessionId:', storedSessionId);
+    setSessionId(storedSessionId);
   }, []);
 
   // Función para manejar la síntesis de voz
+  const getVoices = async () => {
+    let voices = speechSynthesis.getVoices();
+    if (voices.length === 0) {
+      await new Promise(resolve => {
+        speechSynthesis.onvoiceschanged = () => {
+          voices = speechSynthesis.getVoices();
+          resolve();
+        };
+      });
+    }
+    return voices;
+  };
+
   const speak = useCallback(async (text) => {
+    if (!text) return;
     console.log('Intentando hablar:', text);
 
     // Verificar soporte de síntesis de voz
@@ -79,6 +127,72 @@ export default function App() {
       console.error('La síntesis de voz no está soportada en este navegador');
       return;
     }
+
+    return new Promise(async (resolve) => {
+      try {
+        // Configurar el utterance
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = 'es-ES';
+        
+        // Usar la voz actual o buscar una nueva
+        if (currentVoiceRef.current) {
+          console.log('Usando voz actual:', currentVoiceRef.current.name);
+          utterance.voice = currentVoiceRef.current;
+        } else {
+          // Si no hay voz actual, intentar obtener una
+          const voices = await getVoices();
+          const voice = voices.find(v => v.name === selectedVoice);
+          if (voice) {
+            console.log('Configurando nueva voz:', voice.name);
+            currentVoiceRef.current = voice;
+            utterance.voice = voice;
+          } else {
+            console.warn('Voz no encontrada:', selectedVoice);
+            const spanishVoice = voices.find(v => v.lang.startsWith('es'));
+            if (spanishVoice) {
+              console.log('Usando voz alternativa:', spanishVoice.name);
+              currentVoiceRef.current = spanishVoice;
+              utterance.voice = spanishVoice;
+            }
+          }
+        }
+
+        // Configurar eventos
+        utterance.onend = () => {
+          console.log('Finalizó la síntesis de voz');
+          console.log('Estado actual - isPaused:', isPaused, 'hasUserInteracted:', hasUserInteracted);
+          
+          // Pequeña pausa antes de reiniciar el reconocimiento
+          setTimeout(() => {
+            if (!isPaused && hasUserInteracted) {
+              console.log('Reiniciando reconocimiento después de hablar...');
+              startRecognition();
+            } else {
+              console.log('No se reinicia el reconocimiento - está pausado o no hay interacción');
+            }
+          }, 250);
+
+          resolve();
+        };
+
+        utterance.onerror = (error) => {
+          console.error('Error en la síntesis de voz:', error);
+          if (error.error === 'not-allowed') {
+            console.log('Permiso denegado para síntesis de voz');
+            setHasUserInteracted(false);
+          }
+          resolve();
+        };
+
+        // Pequeña pausa para asegurar que todo esté listo
+        setTimeout(() => {
+          window.speechSynthesis.speak(utterance);
+        }, 100);
+      } catch (error) {
+        console.error('Error al configurar la síntesis de voz:', error);
+        resolve();
+      }
+    });
 
     // Si el usuario no ha interactuado, no intentar hablar
     if (!hasUserInteracted) {
@@ -475,7 +589,13 @@ export default function App() {
         return;
       }
 
-      console.log('Enviando solicitud al backend...');
+      // Asegurarse de que tenemos un sessionId válido
+      if (!sessionId) {
+        console.error('No hay sessionId disponible');
+        throw new Error('No hay sessionId disponible');
+      }
+
+      console.log('Enviando solicitud al backend con sessionId:', sessionId);
       const response = await axiosInstance.post(PROCESS_ENDPOINT, {
         text: transcript,
         sessionId: sessionId
@@ -548,16 +668,27 @@ export default function App() {
 
   const handleStartInteraction = () => {
     setHasUserInteracted(true);
-    // Intentar reproducir el mensaje de bienvenida después de la interacción
-    speak('¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte?');
+    // Solo reproducir el mensaje de bienvenida si no hay conversación previa
+    if (conversation.length === 0) {
+      const welcomeMessage = {
+        role: 'assistant',
+        content: '¡Hola! Soy tu asistente virtual. ¿En qué puedo ayudarte?'
+      };
+      setConversation([welcomeMessage]);
+      speak(welcomeMessage.content);
+    }
   };
 
   return (
     <div className="app-container">
+      <button className="config-button" onClick={() => setShowConfig(true)}>
+        <span className="material-icons">settings</span>
+      </button>
+      {showConfig && <ConfigurationPanel 
+        onClose={() => setShowConfig(false)}
+        onVoiceChange={setSelectedVoice}
+      />}
       <div className="top-zone">
-        <button className="config-button">
-          <span className="material-icons config-icon">settings</span>
-        </button>
         {!hasUserInteracted && (
           <button 
             className="start-button"
