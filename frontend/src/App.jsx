@@ -164,6 +164,8 @@ export default function App() {
           // Configurar el utterance
           const utterance = new SpeechSynthesisUtterance(text);
           utterance.lang = 'es-ES';
+          utterance.rate = 0.9; // Velocidad ligeramente más lenta para mejor claridad
+          utterance.pitch = 1.0;
           
           // Usar la voz actual o buscar una nueva
           let selectedVoiceObj = currentVoiceRef.current;
@@ -197,25 +199,34 @@ export default function App() {
           // Configurar eventos
           utterance.onend = () => {
             console.log('Finalizó la síntesis de voz');
-            // Reiniciar el reconocimiento si no está pausado
-            if (!isPaused && hasUserInteracted) {
-              console.log('Reiniciando reconocimiento después de hablar...');
-              startRecognition();
-            }
+            console.log('Estado actual - isPaused:', isPaused, 'hasUserInteracted:', hasUserInteracted);
+            
+            // Pequeña pausa antes de reiniciar el reconocimiento
+            setTimeout(() => {
+              if (!isPaused && hasUserInteracted) {
+                console.log('Reiniciando reconocimiento después de hablar...');
+                startRecognition();
+              } else {
+                console.log('No se reinicia el reconocimiento - está pausado o no hay interacción');
+              }
+            }, 250);
+
             resolve();
           };
 
           utterance.onerror = (error) => {
             console.error('Error en la síntesis de voz:', error);
-            // Reiniciar el reconocimiento si hay error
-            if (!isPaused && hasUserInteracted) {
-              startRecognition();
+            if (error.error === 'not-allowed') {
+              console.log('Permiso denegado para síntesis de voz');
+              setHasUserInteracted(false);
             }
             resolve();
           };
 
-          // Hablar inmediatamente
-          window.speechSynthesis.speak(utterance);
+          // Pequeña pausa para asegurar que todo esté listo
+          setTimeout(() => {
+            window.speechSynthesis.speak(utterance);
+          }, 100);
         } catch (error) {
           console.error('Error al configurar la síntesis de voz:', error);
           resolve();
@@ -225,51 +236,7 @@ export default function App() {
       console.error('Error en la síntesis de voz:', error);
       return Promise.resolve();
     }
-      } catch (error) {
-        console.error('Error al detener reconocimiento:', error);
-      }
-    }
-
-    // Detener cualquier síntesis anterior
-    window.speechSynthesis.cancel();
-
-    return new Promise((resolve) => {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.lang = languageCode;
-      utterance.rate = 0.9; // Velocidad ligeramente más lenta para mejor claridad
-      utterance.pitch = 1.0;
-      
-      utterance.onend = () => {
-        console.log('Finalizó la síntesis de voz');
-        console.log('Estado actual - isPaused:', isPaused, 'hasUserInteracted:', hasUserInteracted);
-        
-        // Pequeña pausa antes de reiniciar el reconocimiento
-        setTimeout(() => {
-          if (!isPaused && hasUserInteracted) {
-            console.log('Reiniciando reconocimiento después de hablar...');
-            startRecognition();
-          } else {
-            console.log('No se reinicia el reconocimiento - está pausado o no hay interacción');
-          }
-        }, 250);
-
-        resolve();
-      };
-      utterance.onerror = (error) => {
-        console.error('Error en la síntesis de voz:', error);
-        if (error.error === 'not-allowed') {
-          console.log('Permiso denegado para síntesis de voz');
-          setHasUserInteracted(false);
-        }
-        resolve();
-      };
-
-      // Pequeña pausa para asegurar que todo esté listo
-      setTimeout(() => {
-        window.speechSynthesis.speak(utterance);
-      }, 100);
-    });
-  }, [languageCode, hasUserInteracted]);
+  }, [languageCode, hasUserInteracted, isPaused]);
 
   // Efecto para mostrar mensaje de bienvenida
   useEffect(() => {
