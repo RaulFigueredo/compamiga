@@ -159,33 +159,39 @@ export default function App() {
         }
       }
 
-      return new Promise((resolve) => {
+      return new Promise(async (resolve) => {
       try {
         // Configurar el utterance
         const utterance = new SpeechSynthesisUtterance(text);
         utterance.lang = 'es-ES';
         
         // Usar la voz actual o buscar una nueva
-        if (currentVoiceRef.current) {
-          console.log('Usando voz actual:', currentVoiceRef.current.name);
-          utterance.voice = currentVoiceRef.current;
-        } else {
+        let selectedVoiceObj = currentVoiceRef.current;
+        
+        if (!selectedVoiceObj) {
           // Si no hay voz actual, intentar obtener una
           const voices = await getVoices();
-          const voice = voices.find(v => v.name === selectedVoice);
-          if (voice) {
-            console.log('Configurando nueva voz:', voice.name);
-            currentVoiceRef.current = voice;
-            utterance.voice = voice;
-          } else {
+          selectedVoiceObj = voices.find(v => v.name === selectedVoice);
+          
+          if (!selectedVoiceObj) {
             console.warn('Voz no encontrada:', selectedVoice);
-            const spanishVoice = voices.find(v => v.lang.startsWith('es'));
-            if (spanishVoice) {
-              console.log('Usando voz alternativa:', spanishVoice.name);
-              currentVoiceRef.current = spanishVoice;
-              utterance.voice = spanishVoice;
+            selectedVoiceObj = voices.find(v => v.lang.startsWith('es'));
+            if (selectedVoiceObj) {
+              console.log('Usando voz alternativa:', selectedVoiceObj.name);
             }
+          } else {
+            console.log('Configurando nueva voz:', selectedVoiceObj.name);
           }
+          
+          if (selectedVoiceObj) {
+            currentVoiceRef.current = selectedVoiceObj;
+          }
+        } else {
+          console.log('Usando voz actual:', selectedVoiceObj.name);
+        }
+        
+        if (selectedVoiceObj) {
+          utterance.voice = selectedVoiceObj;
         }
 
         // Configurar eventos
