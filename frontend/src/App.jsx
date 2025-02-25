@@ -559,11 +559,6 @@ export default function App() {
 
 
   const processVoiceCommand = async (transcript) => {
-    // Ignorar si el sistema está hablando
-    if (window.speechSynthesis.speaking) {
-      console.log('Sistema hablando, ignorando comando:', transcript);
-      return;
-    }
 
     console.log('Procesando comando de voz:', transcript);
     
