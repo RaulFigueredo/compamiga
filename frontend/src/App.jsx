@@ -139,6 +139,25 @@ export default function App() {
       return;
     }
 
+    // Detener cualquier síntesis anterior
+    window.speechSynthesis.cancel();
+
+    // Si el usuario está hablando, esperar un momento
+    if (isSpeaking) {
+      console.log('Usuario hablando, esperando...');
+      await new Promise(resolve => setTimeout(resolve, 500));
+    }
+
+    // Detener temporalmente el reconocimiento mientras hablamos
+    if (recognitionRef.current) {
+      try {
+        console.log('Deteniendo temporalmente el reconocimiento para hablar...');
+        recognitionRef.current.stop();
+      } catch (error) {
+        console.error('Error al detener reconocimiento:', error);
+      }
+    }
+
     return new Promise(async (resolve) => {
       try {
         // Configurar el utterance
@@ -171,11 +190,20 @@ export default function App() {
         // Configurar eventos
         utterance.onend = () => {
           console.log('Finalizó la síntesis de voz');
+          // Reiniciar el reconocimiento si no está pausado
+          if (!isPaused && hasUserInteracted) {
+            console.log('Reiniciando reconocimiento después de hablar...');
+            startRecognition();
+          }
           resolve();
         };
 
         utterance.onerror = (error) => {
           console.error('Error en la síntesis de voz:', error);
+          // Reiniciar el reconocimiento si hay error
+          if (!isPaused && hasUserInteracted) {
+            startRecognition();
+          }
           resolve();
         };
 
@@ -186,19 +214,6 @@ export default function App() {
         resolve();
       }
     });
-    if (!hasUserInteracted) {
-      console.log('Esperando interacción del usuario para hablar');
-      return;
-    }
-
-    // Si el usuario está hablando, esperar un momento
-    if (isSpeaking) {
-      console.log('Usuario hablando, esperando...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    // Detener temporalmente el reconocimiento mientras hablamos
-    if (recognitionRef.current) {
       try {
         console.log('Deteniendo temporalmente el reconocimiento para hablar...');
         recognitionRef.current.stop();

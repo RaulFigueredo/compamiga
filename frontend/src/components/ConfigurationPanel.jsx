@@ -8,6 +8,13 @@ const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
     assistant_name: 'Compamiga'
   });
 
+  // Asegurarse de que los valores nunca sean undefined
+  const safeConfig = {
+    assistant_voice: config.assistant_voice || '',
+    available_voices: config.available_voices || [],
+    assistant_name: config.assistant_name || 'Compamiga'
+  };
+
   useEffect(() => {
     loadConfig();
     loadAvailableVoices();
@@ -149,7 +156,7 @@ const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
           <label htmlFor="voice-select">Voz del Asistente:</label>
           <select
             id="voice-select"
-            value={config.assistant_voice}
+            value={safeConfig.assistant_voice}
             onChange={handleVoiceChange}
           >
             {config.available_voices.map(voice => (
@@ -164,7 +171,7 @@ const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
           <input
             id="name-input"
             type="text"
-            value={config.assistant_name}
+            value={safeConfig.assistant_name}
             onChange={handleAssistantNameChange}
             placeholder="Introduce un nombre para el asistente"
           />
