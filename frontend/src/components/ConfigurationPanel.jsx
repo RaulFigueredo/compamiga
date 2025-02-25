@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import axiosInstance from '../axiosConfig';
 
 const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
@@ -47,10 +47,13 @@ const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
     }
   };
 
-  const handleAssistantNameChange = async (e) => {
-    const newName = e.target.value;
+  // Referencia al timeout del debounce
+  const debounceTimeout = useRef(null);
+
+  // Función para actualizar el nombre
+  const updateAssistantName = async (newName) => {
     try {
-      // Notificar al componente padre inmediatamente
+      // Notificar al componente padre
       if (onNameChange) {
         onNameChange(newName);
       }
@@ -79,6 +82,27 @@ const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
     } catch (error) {
       console.error('Error updating assistant name:', error);
     }
+  };
+
+  // Manejador del cambio de nombre con debounce
+  const handleAssistantNameChange = (e) => {
+    const newName = e.target.value;
+    
+    // Actualizar el estado local inmediatamente para la UI
+    setConfig(prev => ({
+      ...prev,
+      assistant_name: newName
+    }));
+
+    // Limpiar el timeout anterior si existe
+    if (debounceTimeout.current) {
+      clearTimeout(debounceTimeout.current);
+    }
+
+    // Establecer un nuevo timeout
+    debounceTimeout.current = setTimeout(() => {
+      updateAssistantName(newName);
+    }, 1000); // Esperar 1 segundo después de que el usuario deje de escribir
   };
 
   const handleVoiceChange = async (e) => {
