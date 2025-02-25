@@ -22,6 +22,7 @@ export default function App() {
   const minTimeBetweenProcessing = 2000; // Mínimo tiempo entre procesamientos en ms
   const [sessionId, setSessionId] = useState(null);
   const [selectedVoice, setSelectedVoice] = useState('es-ES-Standard-A');
+  const [assistantName, setAssistantName] = useState('Asistente');
 
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
@@ -35,7 +36,10 @@ export default function App() {
       try {
         // Primero cargar la configuración guardada
         const configResponse = await axiosInstance.get('/config');
-        const savedVoice = configResponse.data.assistant_voice;
+        const { assistant_voice: savedVoice, assistant_name: savedName } = configResponse.data;
+        if (savedName) {
+          setAssistantName(savedName);
+        }
         console.log('Voz guardada en configuración:', savedVoice);
         
         // Esperar a que las voces estén disponibles
@@ -261,7 +265,7 @@ export default function App() {
   useEffect(() => {
     const welcomeMessage = {
       role: 'assistant',
-      content: '¡Hola! Soy tu asistente virtual. Estoy aquí para ayudarte y conversar contigo. ¿En qué puedo ayudarte hoy?'
+      content: `¡Hola! Soy ${assistantName}. Estoy aquí para ayudarte y conversar contigo. ¿En qué puedo ayudarte hoy?`
     };
     setConversation([welcomeMessage]);
 
@@ -687,6 +691,7 @@ export default function App() {
       {showConfig && <ConfigurationPanel 
         onClose={() => setShowConfig(false)}
         onVoiceChange={setSelectedVoice}
+        onNameChange={setAssistantName}
       />}
       <div className="top-zone">
         {!hasUserInteracted && (
