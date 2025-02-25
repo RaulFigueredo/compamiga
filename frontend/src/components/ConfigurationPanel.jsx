@@ -5,7 +5,7 @@ const ConfigurationPanel = ({ onClose, onVoiceChange, onNameChange }) => {
   const [config, setConfig] = useState({
     assistant_voice: '',
     available_voices: [],
-    assistant_name: ''
+    assistant_name: 'Compamiga'
   });
 
   useEffect(() => {

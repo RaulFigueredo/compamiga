@@ -22,7 +22,7 @@ export default function App() {
   const minTimeBetweenProcessing = 2000; // Mínimo tiempo entre procesamientos en ms
   const [sessionId, setSessionId] = useState(null);
   const [selectedVoice, setSelectedVoice] = useState('es-ES-Standard-A');
-  const [assistantName, setAssistantName] = useState('Asistente');
+  const [assistantName, setAssistantName] = useState('Compamiga');
 
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [showConfig, setShowConfig] = useState(false);
