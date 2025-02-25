@@ -139,26 +139,27 @@ export default function App() {
       return;
     }
 
-    // Detener cualquier síntesis anterior
-    window.speechSynthesis.cancel();
+    try {
+      // Detener cualquier síntesis anterior
+      window.speechSynthesis.cancel();
 
-    // Si el usuario está hablando, esperar un momento
-    if (isSpeaking) {
-      console.log('Usuario hablando, esperando...');
-      await new Promise(resolve => setTimeout(resolve, 500));
-    }
-
-    // Detener temporalmente el reconocimiento mientras hablamos
-    if (recognitionRef.current) {
-      try {
-        console.log('Deteniendo temporalmente el reconocimiento para hablar...');
-        recognitionRef.current.stop();
-      } catch (error) {
-        console.error('Error al detener reconocimiento:', error);
+      // Si el usuario está hablando, esperar un momento
+      if (isSpeaking) {
+        console.log('Usuario hablando, esperando...');
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
-    }
 
-    return new Promise(async (resolve) => {
+      // Detener temporalmente el reconocimiento mientras hablamos
+      if (recognitionRef.current) {
+        try {
+          console.log('Deteniendo temporalmente el reconocimiento para hablar...');
+          recognitionRef.current.stop();
+        } catch (error) {
+          console.error('Error al detener reconocimiento:', error);
+        }
+      }
+
+      return new Promise((resolve) => {
       try {
         // Configurar el utterance
         const utterance = new SpeechSynthesisUtterance(text);
