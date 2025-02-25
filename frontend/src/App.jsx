@@ -96,16 +96,23 @@ export default function App() {
 
   // Inicializar sessionId
   useEffect(() => {
-    let storedSessionId = localStorage.getItem('sessionId');
-    
-    if (!storedSessionId) {
-      // Crear nuevo sessionId si no existe
-      storedSessionId = crypto.randomUUID();
-      localStorage.setItem('sessionId', storedSessionId);
-    }
+    const initSession = async () => {
+      let storedSessionId = localStorage.getItem('sessionId');
+      
+      if (!storedSessionId) {
+        // Crear nuevo sessionId si no existe
+        storedSessionId = crypto.randomUUID();
+        localStorage.setItem('sessionId', storedSessionId);
+      }
 
-    console.log('Usando sessionId:', storedSessionId);
-    setSessionId(storedSessionId);
+      console.log('Usando sessionId:', storedSessionId);
+      setSessionId(storedSessionId);
+
+      // Esperar un momento para asegurarnos de que el sessionId esté establecido
+      await new Promise(resolve => setTimeout(resolve, 100));
+    };
+
+    initSession();
   }, []);
 
   // Función para manejar la síntesis de voz
@@ -164,41 +171,21 @@ export default function App() {
         // Configurar eventos
         utterance.onend = () => {
           console.log('Finalizó la síntesis de voz');
-          console.log('Estado actual - isPaused:', isPaused, 'hasUserInteracted:', hasUserInteracted);
-          
-          // Pequeña pausa antes de reiniciar el reconocimiento
-          setTimeout(() => {
-            if (!isPaused && hasUserInteracted) {
-              console.log('Reiniciando reconocimiento después de hablar...');
-              startRecognition();
-            } else {
-              console.log('No se reinicia el reconocimiento - está pausado o no hay interacción');
-            }
-          }, 250);
-
           resolve();
         };
 
         utterance.onerror = (error) => {
           console.error('Error en la síntesis de voz:', error);
-          if (error.error === 'not-allowed') {
-            console.log('Permiso denegado para síntesis de voz');
-            setHasUserInteracted(false);
-          }
           resolve();
         };
 
-        // Pequeña pausa para asegurar que todo esté listo
-        setTimeout(() => {
-          window.speechSynthesis.speak(utterance);
-        }, 100);
+        // Hablar inmediatamente
+        window.speechSynthesis.speak(utterance);
       } catch (error) {
         console.error('Error al configurar la síntesis de voz:', error);
         resolve();
       }
     });
-
-    // Si el usuario no ha interactuado, no intentar hablar
     if (!hasUserInteracted) {
       console.log('Esperando interacción del usuario para hablar');
       return;
@@ -559,10 +546,15 @@ export default function App() {
 
 
   const processVoiceCommand = async (transcript) => {
-
     console.log('Procesando comando de voz:', transcript);
     
     try {
+      // Ignorar comandos muy cortos
+      if (transcript.length < 3) {
+        console.log('Comando demasiado corto, ignorando');
+        return;
+      }
+
       // Marcar que ha habido interacción si es la primera vez
       if (!hasUserInteracted) {
         console.log('Primera interacción detectada');
@@ -583,15 +575,9 @@ export default function App() {
       const userMessage = { role: 'user', content: transcript };
       setConversation(prev => [...prev, userMessage]);
       
-      if (transcript.length < 3) {
-        console.log('Comando demasiado corto, ignorando');
-        return;
-      }
-
-      // Asegurarse de que tenemos un sessionId válido
+      // Esperar un momento para asegurarnos de que el sessionId esté disponible
       if (!sessionId) {
-        console.error('No hay sessionId disponible');
-        throw new Error('No hay sessionId disponible');
+        await new Promise(resolve => setTimeout(resolve, 500));
       }
 
       console.log('Enviando solicitud al backend con sessionId:', sessionId);
