@@ -54,8 +54,21 @@ export default function App() {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [lastProcessedTime, setLastProcessedTime] = useState(0);
   const minTimeBetweenProcessing = 2000; // Mínimo tiempo entre procesamientos en ms
+  const [sessionId, setSessionId] = useState(null);
 
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
+
+  // Inicializar sessionId
+  useEffect(() => {
+    const storedSessionId = localStorage.getItem('sessionId');
+    if (storedSessionId) {
+      setSessionId(storedSessionId);
+    } else {
+      const newSessionId = crypto.randomUUID();
+      localStorage.setItem('sessionId', newSessionId);
+      setSessionId(newSessionId);
+    }
+  }, []);
 
   // Función para manejar la síntesis de voz
   const speak = useCallback(async (text) => {
@@ -464,7 +477,8 @@ export default function App() {
 
       console.log('Enviando solicitud al backend...');
       const response = await axiosInstance.post(PROCESS_ENDPOINT, {
-        text: transcript
+        text: transcript,
+        sessionId: sessionId
       });
 
       console.log('Respuesta completa:', response);

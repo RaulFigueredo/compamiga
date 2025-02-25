@@ -13,8 +13,8 @@ services:
     environment:
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: compamiga
-      MYSQL_USER: compamiga
-      MYSQL_PASSWORD: compamiga
+      MYSQL_USER: root
+      MYSQL_PASSWORD: root
     volumes:
       - mysql-data:/var/lib/mysql
     networks:
@@ -30,8 +30,6 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     container_name: compamiga-php
-    environment:
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
     volumes:
       - ./backend:/var/www/backend
     networks:
@@ -39,8 +37,7 @@ services:
     environment:
       - APP_ENV=dev
       - APP_SECRET=your_app_secret_here
-      - DATABASE_URL=mysql://compamiga:compamiga@database:3309/compamiga
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DATABASE_URL=mysql://root:root@database:3306/compamiga?serverVersion=8.0
     depends_on:
       - database
 
